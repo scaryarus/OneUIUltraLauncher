@@ -25,33 +25,25 @@ jobs:
         with:
           packages: platform-tools
 
-      - name: Extract project ZIP
+      - name: Extract project
         run: |
-          ZIP=$(find . -maxdepth 2 -name "OneUIUltraLauncher-project.zip" | head -n 1)
-          if [ -n "$ZIP" ]; then
-            mkdir -p extracted
-            unzip -q "$ZIP" -d extracted
-          fi
+          mkdir -p extracted
+          unzip -q OneUIUltraLauncher-project.zip -d extracted
 
-      - name: Find Gradle
-        run: |
-          WRAPPER=$(find . -name gradlew -type f | head -n 1)
-          if [ -z "$WRAPPER" ]; then
-            echo "Gradle wrapper not found!"
-            exit 1
-          fi
-          echo "GRADLE_DIR=$(dirname "$WRAPPER")" >> $GITHUB_ENV
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
       - name: Build APK
         run: |
-          cd "$GRADLE_DIR"
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          cd extracted/OneUIUltraLauncher
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: OneUIUltraLauncher-APK
-          path: '**/build/outputs/apk/debug/*.apk'
+          path: extracted/OneUIUltraLauncher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           
