@@ -1,9 +1,10 @@
+
 name: Build One UI Ultra APK
 
 on:
-  workflow_dispatch:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -21,22 +22,36 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          packages: platform-tools
 
-      - name: Extract project
+      - name: Extract project ZIP
         run: |
-          unzip -q OneUIUltraLauncher-project.zip -d extracted
+          ZIP=$(find . -maxdepth 2 -name "OneUIUltraLauncher-project.zip" | head -n 1)
+          if [ -n "$ZIP" ]; then
+            mkdir -p extracted
+            unzip -q "$ZIP" -d extracted
+          fi
+
+      - name: Find Gradle
+        run: |
+          WRAPPER=$(find . -name gradlew -type f | head -n 1)
+          if [ -z "$WRAPPER" ]; then
+            echo "Gradle wrapper not found!"
+            exit 1
+          fi
+          echo "GRADLE_DIR=$(dirname "$WRAPPER")" >> $GITHUB_ENV
 
       - name: Build APK
-        working-directory: extracted/OneUIUltraLauncher
-        run: gradle assembleDebug
+        run: |
+          cd "$GRADLE_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: OneUIUltraLauncher-APK
-          path: extracted/OneUIUltraLauncher/app/build/outputs/apk/debug/*.apk
+          path: '**/build/outputs/apk/debug/*.apk'
+          if-no-files-found: error
+          
